@@ -6,13 +6,16 @@ enum states {MAIN_MENU_PRINT , MAIN_MENU, DOOR_PRINT, DOOR , MOTOR_PRINT , MOTOR
 
 
 /**
- * Prelab 7
- * Gabrielle Green
+ * Midterm Code
+ * Gabrielle Green and Jenna Stolzman
  * EGR 226 902
  *
- * The purpose of this code is to read an input from the keypad as a percent value,
- * convert this value to a decimal, and then use that value to set the pwm
- * for the motor using the systick timer.
+ * The purpose of this code is to create a main menu to pick from 1.Door, 2.Motor, 3.Lights and prompt the user to control the door,
+ * motor, or lights through the use of a keypad and displays the results on an LCD. A servo motor is used to control the door and if 
+ * the door is opened, the green light will turn on and if the door is closed, the red light will turn on. A DC motor is used to prompt
+ * the user to enter a duty cycle to drive the motor to run at the percentage the user input. Three lights will run on PWM to control 
+ * the intensity of the light by prompting the user to enter a duty cycle. At any moment, a switch button will cut the motor if pushed 
+ * and a different switch button is used to turn on and off the three PWM lights.
  */
 
 void TimerA_Init_DC(float speed3);
@@ -55,37 +58,31 @@ float Control_Speed2(int percent3);
 void PORT5_IRQHandler(void);
 void SetupPort5Interrupts();
 
-
 void main(void){
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
     enum states state = MAIN_MENU_PRINT;
     int NUM = 0;
     int j;
     float percent_value;
-
-    __disable_irq();
+    
+    __disable_irq(); //disable interrupts
     SetupPort5Interrupts();                         //Initializes the two push buttons on the MSP432 as buttons that interrupt the main program
     __enable_interrupt();
     Initialize_Pins();
     SysTick_Init();
-
-
-
+    
         while(1)
         {
-    switch(state)
-    {
-    case MAIN_MENU_PRINT:
+             switch(state)
+             {
+                case MAIN_MENU_PRINT:
+                    LCD_main(); //prints main menu
+                    state = MAIN_MENU;
+                    break;
 
-            LCD_main();
-            state = MAIN_MENU;
-            break;
-
-
-    case MAIN_MENU:
-            NUM = Input_Number();
-
-
+            case MAIN_MENU:
+            NUM = Input_Number(); //allows user to enter 1 for door, 2 for motor, or 3 for lights
+            
             if (NUM == 1)
             {
                state = DOOR_PRINT;
@@ -103,56 +100,56 @@ void main(void){
 
             break;
    case DOOR_PRINT:
-            LCD_door();
+            LCD_door(); //print door menu
             state = DOOR;
             break;
    case DOOR:
-       NUM = Input_Number();
+       NUM = Input_Number(); //enter 1 for opened or 2 for closed
        if (NUM == 1)
        {
            j = 2250;
-           TimerA_Init_SERVO(j);
-           P1 -> OUT |= BIT6;
-           P1 -> OUT &= ~(BIT7);
+           TimerA_Init_SERVO(j);//opens door
+           P1 -> OUT |= BIT6; //turn on green light
+           P1 -> OUT &= ~(BIT7); //turn off red light
            state = MAIN_MENU_PRINT;
        }
 
        if (NUM == 2)
        {
            j = 3000;
-           TimerA_Init_SERVO(j);
-           P1 -> OUT |= BIT7;
-           P1 -> OUT &= ~(BIT6);
+           TimerA_Init_SERVO(j); //closes door
+           P1 -> OUT |= BIT7; //turn on red light
+           P1 -> OUT &= ~(BIT6); //turn off green light
            state = MAIN_MENU_PRINT;
        }
        break;
     case MOTOR_PRINT:
-            LCD_duty_cycle();
+            LCD_duty_cycle(); //prompt user to enter duty cycle
             state = MOTOR;
             break;
     case MOTOR:
-            Keypad_percent();
+            Keypad_percent(); //drives the motor at the percent the user input
             state = MAIN_MENU_PRINT;
             break;
      case LIGHTS_PRINT:
-         LCD_light();
+         LCD_light(); //print lights menu
          state = LIGHTS;
             break;
      case LIGHTS_DUTY_CYCLE_RED:
-         LCD_duty_cycle();
+         LCD_duty_cycle(); //enter duty cycle for red light
          state = RED_LED;
          break;
      case LIGHTS_DUTY_CYCLE_GREEN:
-         LCD_duty_cycle();
+         LCD_duty_cycle(); //enter duty cycle for green light
          state = GREEN_LED;
          break;
      case LIGHTS_DUTY_CYCLE_BLUE:
-         LCD_duty_cycle();
+         LCD_duty_cycle(); //enter duty cycle for blue light
          state = BLUE_LED;
          break;
 
      case LIGHTS:
-         NUM = Input_Number();
+         NUM = Input_Number(); //enter 1 for red, 2 for green, or 3 for blue
                     if (NUM == 1)
                     {
                        state = LIGHTS_DUTY_CYCLE_RED;
@@ -169,17 +166,17 @@ void main(void){
                     }
          break;
      case RED_LED:
-         percent_value = Keypad_percent1();
+         percent_value = Keypad_percent1(); //passes percent value that was entered to timer A for PWM
          TimerA_Init_RED(percent_value);
          state = MAIN_MENU_PRINT;
          break;
      case GREEN_LED:
-         percent_value = Keypad_percent1();
+         percent_value = Keypad_percent1();//passes percent value that was entered to timer A for PWM
          TimerA_Init_GREEN(percent_value);
          state = MAIN_MENU_PRINT;
          break;
      case BLUE_LED:
-         percent_value = Keypad_percent1();
+         percent_value = Keypad_percent1();//passes percent value that was entered to timer A for PWM
          TimerA_Init_BLUE(percent_value);
          state = MAIN_MENU_PRINT;
          break;
